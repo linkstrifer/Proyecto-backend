@@ -89,10 +89,8 @@ app.post("/channel/:id", (req, res) => {
 io.on("connection", (socket) => {
   console.log("new connection sockets");
 
-  socket.on("message", (name, message) => {
-    const data = { user: name, text: message, channel: "general" };
-    console.log("new message", data);
-    createMessage(data);
+  socket.on("message", (message) => {
+    createMessage(message);
   });
 });
 
