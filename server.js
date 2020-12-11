@@ -59,28 +59,41 @@ app.get("/channel/:id", (req, res) => {
 
 //- POST /api/user/create
 
-app.post("/channel/:id", (req, res) => {
-  const { id } = req.params;
-  const { text, user } = req.body;
-  console.log(text, user);
+async function createMessage(message) {
+  const { text, user, channel } = message;
 
   if (text && user) {
-    MessageModel.create({ user, text, channel: id })
+    return MessageModel.create({ user, text, channel })
       .then((result) => {
         io.emit("newMessage", result);
-        res.status(200).json(result);
+        return result;
       })
       .catch((error) => {
-        res.status(500).json({ error });
+        return { error, status: 500 };
       });
   } else {
-    res.status(400).json({ error: "missing some parameters" });
+    return { error: "missing some parameters", status: 400 };
   }
+}
+
+app.post("/channel/:id", (req, res) => {
+  const { id: channel } = req.params;
+  const { text, user } = req.body;
+
+  createMessage({ text, user, channel })
+    .then((result) => res.status(200).json(result))
+    .catch((error) => res.status(error.status).json(error));
 });
 
 //Sockets
-io.on("connection", () => {
+io.on("connection", (socket) => {
   console.log("new connection sockets");
+
+  socket.on("message", (name, message) => {
+    const data = { user: name, text: message, channel: "general" };
+    console.log("new message", data);
+    createMessage(data);
+  });
 });
 
 server.listen(port, () => {
